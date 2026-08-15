@@ -72,4 +72,4 @@ eyeballing the result.
 
 ## Related
 
-- [[README]]
+- [README](../README.md)

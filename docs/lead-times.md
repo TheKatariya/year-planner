@@ -84,12 +84,12 @@ to see it.
 
 ## What this doesn't do yet
 
-Milestones are markers, not tasks. There's no assignee, no reminder, no push into
-Todoist or Notion. See [[future-enhancements]].
+Milestones are markers, not tasks. There's no assignee, no reminder, and no push
+into an external task manager. See [future-enhancements](future-enhancements.md).
 
 ---
 
 ## Related
 
-- [[planning-method]] — § *Work backwards*
-- [[README]]
+- [planning-method](planning-method.md) — § *Work backwards*
+- [README](../README.md)

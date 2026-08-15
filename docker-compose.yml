@@ -3,7 +3,7 @@ services:
     build: .
     container_name: year-planner
     restart: unless-stopped
-    # 3000-3004 and 3008 are already taken on tysons01.
+    # Change the host side if 3005 clashes with something you run.
     ports:
       - "3005:3005"
     environment:

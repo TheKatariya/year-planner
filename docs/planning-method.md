@@ -213,7 +213,7 @@ Once the date exists, everything else can have a date too.
 **In the tool:** this is automated. Every event carries a set of *milestones* — offsets measured in
 weeks before the start date. Each category ships with a sensible default ladder, and you can edit
 the ladder per event. Milestones render on the strip as small markers ahead of the block, so lead
-time is visible rather than assumed. See [[lead-times]].
+time is visible rather than assumed. See [lead-times](lead-times.md).
 
 ---
 
@@ -253,5 +253,5 @@ You don't need to finish every detail. You need to leave knowing what's coming.
 
 ## Related
 
-- [[README]] — the tool itself, setup and architecture
-- [[lead-times]] — how milestone ladders are configured per category
+- [README](../README.md) — the tool itself, setup and architecture
+- [lead-times](lead-times.md) — how milestone ladders are configured per category

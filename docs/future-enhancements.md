@@ -1,14 +1,13 @@
 # Future Enhancements
 
-You said you wanted to use the tool before deciding what else it needs. This is
-the list of things deliberately left out of v1, each with the seam it would
-attach to — so adding one later is a change, not a rewrite.
+Things deliberately left out of v1, each with the seam it would attach to — so
+adding one later is a change, not a rewrite.
 
-Nothing here is built. Ordered by how likely it is you'll want it.
+Nothing here is built. Ordered by how likely you are to want it.
 
 ---
 
-## Very likely, once you've used it
+## Very likely
 
 ### Scenario / draft plans
 Two versions of the same year side by side, or a draft you commit later.
@@ -58,21 +57,20 @@ already stores `notion_url`; nothing else changes. The milestone table has a
 `notion_url` column sitting unused for the same treatment.
 
 ### Milestones as real tasks
-Assignee, reminder, push into Todoist.
+Assignee, reminder, push into whatever task manager you already use.
 
-**Seam:** `planner_milestones` gains `assignee` and `external_id`. You already run
-Todoist and n8n; a nightly workflow reading due milestones and creating tasks is
-probably less work than building task management in here.
+**Seam:** `planner_milestones` gains `assignee` and `external_id`. If you already
+run a task manager, a scheduled job that reads due milestones and creates tasks
+there is probably less work than building task management in here.
 
 ### Attendance / revenue overlay
 Last year's monthly revenue or lead numbers as a faint band behind each month
 row, so Step 2 (mark your seasons) is grounded in data rather than memory.
 
-**Seam:** a new lib function pulling monthly aggregates, rendered as a background
-layer in `YearStrip`. The data is already in MySQL (`remit_reports`,
-`Leads`) — this is the one enhancement that would connect the planner to
-studio-os, and it's the one I'd argue is most valuable. It turns "I think
-February is slow" into "February was slow".
+**Seam:** a new lib function pulling monthly aggregates from wherever your
+numbers live, rendered as a background layer in `YearStrip`. This is the
+enhancement I'd argue is most valuable: it turns "I think February is slow" into
+"February *was* slow".
 
 ### Category management UI
 Add, rename, recolour and reorder categories, and edit lead templates, without
@@ -89,15 +87,13 @@ building only if lead templates turn out to need frequent tuning.
 ### Multi-studio
 One planner, several locations, shared holidays and separate events.
 
-**Seam:** `studio_id` on events and a scope switcher. The Studio OS brief already
-flags "franchise-ready later" as the eventual direction; this would follow the
-same configuration-driven approach.
+**Seam:** a `location_id` on events plus a scope switcher, with categories and
+holidays shared and events scoped per location.
 
 ### Collaboration
 Multiple people editing during the 90-minute meeting. Supabase Realtime on
 `planner_events` would give live updates cheaply, but it means moving reads to
-the browser and writing real RLS policies — currently there's no auth at all,
-just the tunnel.
+the browser and writing real RLS policies — currently there's no auth at all.
 
 ### Keyboard-driven entry
 Type a date range and a title without touching the mouse. Fast once you know the
@@ -124,11 +120,11 @@ tool, useless before then.
   outside the displayed year disappears until you switch.
 - No undo. Delete asks for nothing. Worth adding if it bites.
 - Lane packing can leave an empty lane in a row — the price of keeping long
-  events on one line. See [[README]] § Lanes.
+  events on one line. See [README](../README.md) § Lanes.
 
 ---
 
 ## Related
 
-- [[README]]
-- [[planning-method]]
+- [README](../README.md)
+- [planning-method](planning-method.md)
