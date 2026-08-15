@@ -1,36 +1,161 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Year Planner
 
-## Getting Started
+Whole-year strategic calendar. Twelve month rows, one horizontal day track each,
+every event a draggable block. Built to support the planning method in
+[[planning-method]] — read that first if you haven't.
 
-First, run the development server:
+Rebuild of Blended Athletics' "Plan Your Whole Damn Year"
+(kimberley-hue.github.io/big-ass-calendar), stripped of the marketing site and
+rebuilt on a real database with overlap handling, direct manipulation, lead-time
+milestones and Notion links.
+
+---
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local     # then paste the service role key
+npm install
+npm run dev                    # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The only value you have to supply is `SUPABASE_SERVICE_ROLE_KEY` — Supabase
+dashboard → Project Settings → API Keys → `service_role`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Demo data
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2027 is preloaded with ~30 entries built to stress the layout: nested events,
+same-day collisions, and blocks crossing month boundaries. Wipe it whenever you
+want to start on your real year:
 
-## Learn More
+```sql
+delete from planner_events;   -- milestones cascade
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Deploy (tysons01, same pattern as studio-os)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cp .env.example .env           # fill in the key
+docker compose up --build -d   # serves on :3005
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Runs on **tysons01** at `localhost:3005` (3000-3004 and 3008 were already in
+use). Point a Cloudflare Tunnel at it to expose it on a hostname.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Data
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Lives in the existing **Member Tracker** Supabase project
+(`rvkhhlhtzweosrzhffct`), in three `planner_`-prefixed tables alongside the other
+BFT tables. Splitting it into its own project would have meant a second billed
+project for three tables.
+
+| Table | Holds |
+|---|---|
+| `planner_categories` | The nine categories: name, both colour steps, render style, kind, and the default lead-time ladder |
+| `planner_events` | Title, category, start/end date, note, Notion URL |
+| `planner_milestones` | One row per lead-time step: label, due date, offset, done flag |
+
+RLS is enabled with **no policies**, so the anon key cannot reach these tables.
+Every read and write goes through a server action using the service role key,
+which never leaves the server. That's the whole auth model — the app is expected
+to sit behind the tunnel, not on the public internet.
+
+### Changing categories
+
+Categories are rows, not code. Edit them in the Supabase table editor and the app
+picks the change up on next load — including `lead_template`, which is the JSON
+ladder new events in that category get seeded with:
+
+```json
+[{"label": "Creative ready", "weeks_before": 4}]
+```
+
+---
+
+## How it works
+
+### The strip
+
+Twelve rows, each a 31-column grid. Months shorter than 31 days render the
+overflow columns hatched, so **day 15 sits in the same place in every row** — the
+whole point is scanning down a column and seeing what else lands mid-month.
+
+### Lanes — overlapping events
+
+The original drew one event per day and dropped the rest, so a promotion running
+under a race week simply vanished. Here lanes are assigned **globally across the
+year** (`src/lib/lanes.ts`): events are sorted by start date, then longest-first,
+and greedily packed into the lowest lane with no collision. A month row is as
+tall as the highest lane it uses.
+
+Global rather than per-row assignment means a three-month block stays on the same
+line in every row it crosses. The cost is the occasional empty lane in a row —
+worth it to keep long events reading as one thing.
+
+### Direct manipulation
+
+| Gesture | Result |
+|---|---|
+| Drag across empty track | New entry over that range |
+| Drag a block | Move it, milestones follow |
+| Drag a block's left/right edge | Resize from that end |
+| Click a block | Opens the editor |
+| Click the ↗ on a block | Opens its Notion page in a new tab |
+| Click a block's ✎ in the table | Opens the editor |
+| `Esc` mid-drag | Cancel |
+
+Dragging works across month rows — the pointer is hit-tested against whatever
+track is under it, so you can drag an event from March into September in one
+gesture.
+
+**Horizontal drag is clamped to the row you're over.** Pushing right past the
+31st doesn't roll into the next month; it stops at the month's last day. To move
+an event into a different month, drag *down or up* into that row. This keeps a
+fast horizontal nudge from silently throwing an event a month sideways.
+
+Clicking a block always opens the editor. Notion is one deliberate click away —
+the ↗ on a linked block, or the **Open ↗** button in the editor — so reaching a
+page never happens by accident when you meant to adjust an entry.
+
+### Lead times
+
+Every event carries milestones — see [[lead-times]].
+
+### Colour
+
+Nine categories, so colour cannot be the identity channel on its own. See
+[[colour]] for the palette, what was validated, and what wasn't.
+
+---
+
+## Layout
+
+```
+src/
+  app/
+    actions.ts        server actions: all writes
+    page.tsx          server component: loads a year, renders the shell
+    globals.css       theme tokens, strip styles, print stylesheet
+  components/
+    Planner.tsx       page state, toolbar, legend, table view, CSV export
+    YearStrip.tsx     the grid, lanes, and every drag gesture
+    EventEditor.tsx   modal: event fields + milestone ladder
+    MixSummary.tsx    Step 4 / Step 7 balance check
+  lib/
+    dates.ts          ISO-string date maths, all in UTC
+    lanes.ts          lane assignment and month segmentation
+    queries.ts        reads
+    supabase.ts       server-only client
+    types.ts          domain types
+```
+
+---
+
+## Docs
+
+- [[planning-method]] — the approach the tool exists to support
+- [[lead-times]] — how backward planning works
+- [[colour]] — palette and accessibility
+- [[future-enhancements]] — what's deliberately left out, and where it would go

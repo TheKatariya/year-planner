@@ -1,26 +1,294 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ *
+ * Theme tokens.
+ *
+ * Category hues are NOT defined here — they live in planner_categories
+ * so categories stay editable without a deploy. These are the surfaces,
+ * ink and chrome the strip is drawn on.
+ * ------------------------------------------------------------------ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --surface-0: #ffffff;
+  --surface-1: #fcfcfb;
+  --surface-2: #f4f3f0;
+  --surface-3: #eae9e4;
+  --border-1: #dedcd5;
+  --border-2: #c9c7bf;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #86847c;
+  --accent: #2a78d6;
+  --weekend-tint: rgba(0, 0, 0, 0.035);
+  --today-ring: #eb6834;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface-0: #101010;
+    --surface-1: #1a1a19;
+    --surface-2: #242422;
+    --surface-3: #2f2f2c;
+    --border-1: #383835;
+    --border-2: #4d4d48;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8d8c83;
+    --accent: #3987e5;
+    --weekend-tint: rgba(255, 255, 255, 0.04);
+    --today-ring: #d95926;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: #101010;
+  --surface-1: #1a1a19;
+  --surface-2: #242422;
+  --surface-3: #2f2f2c;
+  --border-1: #383835;
+  --border-2: #4d4d48;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8d8c83;
+  --accent: #3987e5;
+  --weekend-tint: rgba(255, 255, 255, 0.04);
+  --today-ring: #d95926;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border-1: var(--border-1);
+  --color-border-2: var(--border-2);
+  --color-ink: var(--text-primary);
+  --color-ink-2: var(--text-secondary);
+  --color-ink-3: var(--text-muted);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+body {
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* ------------------------------------------------------------------ *
+ * Year strip
+ * ------------------------------------------------------------------ */
+
+.strip-grid {
+  display: grid;
+  grid-template-columns: repeat(31, minmax(0, 1fr));
+}
+
+.strip-day {
+  border-right: 1px solid var(--border-1);
+  min-height: 100%;
+}
+.strip-day:last-child {
+  border-right: 0;
+}
+.strip-day[data-weekend="true"] {
+  background: var(--weekend-tint);
+}
+.strip-day[data-void="true"] {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    var(--surface-2) 3px,
+    var(--surface-2) 4px
+  );
+}
+.strip-day[data-selecting="true"] {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.strip-day[data-today="true"] {
+  box-shadow: inset 0 0 0 1.5px var(--today-ring);
+}
+
+/* Category hue resolution.
+ * Each mark carries both steps inline (--cat-l / --cat-d) because the values
+ * come from the database, not from CSS. These rules pick the step that belongs
+ * to the active surface — the dark column is its own selected step, never an
+ * automatic flip of the light one. */
+.evt,
+.ms-tick,
+.swatch {
+  --cat: var(--cat-l);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) .evt,
+  :root:not([data-theme="light"]) .ms-tick,
+  :root:not([data-theme="light"]) .swatch {
+    --cat: var(--cat-d);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+:root[data-theme="dark"] .evt,
+:root[data-theme="dark"] .ms-tick,
+:root[data-theme="dark"] .swatch {
+  --cat: var(--cat-d);
+}
+
+/* Legend / list swatches carry the same style channel as the blocks. */
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+.swatch[data-style="solid"] {
+  background: var(--cat);
+}
+.swatch[data-style="outline"] {
+  background: color-mix(in srgb, var(--cat) 14%, transparent);
+  box-shadow: inset 0 0 0 2px var(--cat);
+}
+.swatch[data-style="hatch"] {
+  background: repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cat) 60%, transparent),
+      color-mix(in srgb, var(--cat) 60%, transparent) 3px,
+      transparent 3px,
+      transparent 6px
+    ),
+    color-mix(in srgb, var(--cat) 18%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--cat);
+}
+
+/* Event blocks. 2px surface gap between adjacent fills, 4px rounded ends. */
+.evt {
+  position: absolute;
+  border-radius: 4px;
+  cursor: grab;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  outline: 2px solid var(--surface-1);
+  outline-offset: -1px;
+}
+.evt:active {
+  cursor: grabbing;
+}
+.evt[data-dragging="true"] {
+  opacity: 0.75;
+  z-index: 40;
+}
+.evt[data-style="solid"] {
+  background: var(--cat);
+  color: #fff;
+}
+.evt[data-style="outline"] {
+  background: color-mix(in srgb, var(--cat) 14%, transparent);
+  box-shadow: inset 0 0 0 2px var(--cat);
+  color: var(--text-primary);
+}
+.evt[data-style="hatch"] {
+  background: repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cat) 55%, transparent),
+      color-mix(in srgb, var(--cat) 55%, transparent) 5px,
+      transparent 5px,
+      transparent 10px
+    ),
+    color-mix(in srgb, var(--cat) 18%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--cat);
+  color: var(--text-primary);
+}
+.evt[data-selected="true"] {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 1px;
+}
+.evt[data-dimmed="true"] {
+  opacity: 0.18;
+}
+
+/* Resize handles sit inside the block so they never overlap a neighbour. */
+.evt-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: ew-resize;
+}
+.evt-handle[data-edge="start"] {
+  left: 0;
+}
+.evt-handle[data-edge="end"] {
+  right: 0;
+}
+
+/* Milestone ticks — the backward-planning band above each month's lanes.
+ * Deliberately much lighter than an event block: preparation work is context
+ * for the year, not another thing happening in it. At full block weight they
+ * were misread as events. */
+.ms-tick {
+  position: absolute;
+  top: 3px;
+  height: 5px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--cat) 40%, transparent);
+  cursor: pointer;
+}
+.ms-tick[data-done="true"] {
+  background: color-mix(in srgb, var(--cat) 85%, transparent);
+}
+.ms-tick:hover,
+.ms-tick[data-active="true"] {
+  top: 1px;
+  height: 9px;
+  background: var(--cat);
+  z-index: 30;
+}
+.ms-tick[data-dimmed="true"] {
+  opacity: 0.12;
+}
+.ms-tick[data-dimmed="true"] {
+  opacity: 0.15;
+}
+
+/* ------------------------------------------------------------------ *
+ * Print — the 90-minute meeting wants this on paper.
+ * ------------------------------------------------------------------ */
+@media print {
+  :root {
+    color-scheme: light;
+    --surface-0: #fff;
+    --surface-1: #fff;
+    --surface-2: #f4f3f0;
+    --weekend-tint: rgba(0, 0, 0, 0.05);
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-full {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  .strip-scroll {
+    overflow: visible !important;
+  }
+  .strip-inner {
+    min-width: 0 !important;
+  }
+  @page {
+    size: A3 landscape;
+    margin: 10mm;
+  }
 }

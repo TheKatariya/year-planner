@@ -1,0 +1,13 @@
+services:
+  year-planner:
+    build: .
+    container_name: year-planner
+    restart: unless-stopped
+    # 3000-3004 and 3008 are already taken on tysons01.
+    ports:
+      - "3005:3005"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    env_file:
+      - .env
