@@ -32,15 +32,35 @@ want to start on your real year:
 delete from planner_events;   -- milestones cascade
 ```
 
-### Deploy (tysons01, same pattern as studio-os)
+### Deploy
+
+Live on **tysons01** at `~/year-planner`, container `year-planner`, port
+**3005** (3000-3004 and 3008 were already taken on that host).
+
+Reachable on the LAN/Tailscale at `http://tysons01:3005` — there is no public
+hostname yet. To add one, point a Cloudflare Tunnel at `localhost:3005`, the
+same way `cloudflared-studio` fronts studio-os.
+
+First-time setup on a new host:
 
 ```bash
-cp .env.example .env           # fill in the key
-docker compose up --build -d   # serves on :3005
+git clone git@github.com:TheKatariya/year-planner.git
+cd year-planner
+cp .env.example .env            # paste the service role key
+chmod 600 .env
+docker compose up --build -d
 ```
 
-Runs on **tysons01** at `localhost:3005` (3000-3004 and 3008 were already in
-use). Point a Cloudflare Tunnel at it to expose it on a hostname.
+To ship a change:
+
+```bash
+ssh pkatariya@tysons01 'cd ~/year-planner && git pull && docker compose up --build -d'
+```
+
+`restart: unless-stopped` means it comes back on reboot. **There is no auth in
+front of it** — anyone who can reach port 3005 can edit the year. That is fine
+behind Tailscale; put access control in front of it before exposing it
+publicly.
 
 ---
 
